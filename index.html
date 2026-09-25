@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Costos y Presupuestos de Construcción</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for professional icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            box-shadow { box-shadow: none !important; }
+        }
+        .print-only { display: none; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-hard-hat text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white">ConstructoPro <span class="text-brand-600 text-xs uppercase px-2 py-0.5 bg-brand-50 dark:bg-brand-900/40 rounded-full font-semibold">Presupuestos</span></h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Sistema integral de estimación y costos de obra civil</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="app.nuevoPresupuesto()" class="inline-flex items-center space-x-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Nuevo Presupuesto">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                    <span class="hidden md:inline">Nuevo</span>
+                </button>
+                <button onclick="app.exportarJSON()" class="inline-flex items-center space-x-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Exportar Archivo">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden md:inline">Exportar</span>
+                </button>
+                <label class="inline-flex items-center space-x-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition cursor-pointer" title="Cargar Archivo">
+                    <i class="fa-solid fa-upload"></i>
+                    <span class="hidden md:inline">Cargar</span>
+                    <input type="file" id="importFile" accept=".json" class="hidden" onchange="app.importarJSON(event)">
+                </label>
+                <button onclick="app.toggleDarkMode()" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Cambiar Tema">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+                <button onclick="window.print()" class="inline-flex items-center space-x-1.5 px-4 py-2 text-xs sm:text-sm font-medium rounded-lg text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimir / PDF</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+
+        <!-- Proyecto Header Info / Metadata -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Nombre del Proyecto</label>
+                <input type="text" id="projName" value="Residencia Unifamiliar Moderna" oninput="app.updateMeta()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cliente / Propietario</label>
+                <input type="text" id="projClient" value="Ing. Roberto Mendoza" oninput="app.updateMeta()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Superficie (m²)</label>
+                    <input type="number" id="projArea" value="180" min="1" oninput="app.updateMeta()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Moneda / Simemplo</label>
+                    <select id="projCurrency" onchange="app.updateMeta()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <option value="$">$ (USD/MXN)</option>
+                        <option value="€">€ (EUR)</option>
+                        <option value="S/.">S/. (PEN)</option>
+                        <option value="$us">$us (BOB)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Summary Metrics -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Costo Directo Obra</p>
+                    <h3 id="lblDirectCost" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">$0.00</h3>
+                    <span class="text-xs text-brand-600 dark:text-brand-400 font-medium mt-1 inline-block">Suma de partidas</span>
+                </div>
+                <div class="p-3.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                    <i class="fa-solid fa-calculator text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Costo por m²</p>
+                    <h3 id="lblCostPerM2" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">$0.00</h3>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 mt-1 inline-block">Basado en área total</span>
+                </div>
+                <div class="p-3.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                    <i class="fa-solid fa-chart-area text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cargos Adicionales</p>
+                    <h3 id="lblExtrasTotal" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">$0.00</h3>
+                    <span class="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1 inline-block">Indirectos + Utilidad</span>
+                </div>
+                <div class="p-3.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl">
+                    <i class="fa-solid fa-percent text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between bg-gradient-to-br from-brand-500/10 to-transparent">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">Gran Total Presupuesto</p>
+                    <h3 id="lblGrandTotal" class="text-2xl font-bold text-brand-700 dark:text-brand-300 mt-1">$0.00</h3>
+                    <span class="text-xs text-brand-600 dark:text-brand-400 font-semibold mt-1 inline-block">Total con IVA / Utilidad</span>
+                </div>
+                <div class="p-3.5 bg-brand-500 text-white rounded-2xl shadow-md">
+                    <i class="fa-solid fa-file-invoice-dollar text-xl"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuración de Porcentajes (Indirectos, Imprevistos, Utilidad) -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center space-x-2">
+                <i class="fa-solid fa-sliders text-brand-600"></i>
+                <span>Parámetros Financieros y Cargos Indirectos</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Costos Indirectos (%)</label>
+                    <div class="relative">
+                        <input type="number" id="cfgIndirectos" value="15" min="0" max="100" step="0.5" oninput="app.updateConfig()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-slate-400 text-sm">%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Administración, licencias, vigilancia, etc.</p>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Imprevistos (%)</label>
+                    <div class="relative">
+                        <input type="number" id="cfgImprevistos" value="5" min="0" max="100" step="0.5" oninput="app.updateConfig()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-slate-400 text-sm">%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Variaciones de precios o imprevistos de obra</p>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Margen de Utilidad (%)</label>
+                    <div class="relative">
+                        <input type="number" id="cfgUtilidad" value="20" min="0" max="100" step="0.5" oninput="app.updateConfig()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-slate-400 text-sm">%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Ganancia esperada por el contratista</p>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Impuestos / IVA (%)</label>
+                    <div class="relative">
+                        <input type="number" id="cfgIva" value="16" min="0" max="100" step="0.5" oninput="app.updateConfig()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none pr-8">
+                        <span class="absolute right-3 top-2.5 text-slate-400 text-sm">%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Impuesto al valor agregado u otros tributos</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gráfico Visual de Desglose por Etapas -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700 no-print">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
+                <span class="flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie text-brand-600"></i>
+                    <span>Distribución Porcentual del Costo Directo</span>
+                </span>
+                <span class="text-xs text-slate-400 font-normal">Basado en subtotales de etapas</span>
+            </h2>
+            <div id="visualBreakdown" class="space-y-3">
+                <!-- Generado dinámicamente -->
+            </div>
+        </section>
+
+        <!-- Contenedor Principal de Etapas y Partidas -->
+        <section class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check text-brand-600"></i>
+                    <span>Etapas y Partidas de Construcción</span>
+                </h2>
+                <div class="flex items-center space-x-3 no-print">
+                    <button onclick="app.abrirModalEtapa()" class="inline-flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Agregar Nueva Etapa</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Listado de Etapas (Acordeones / Tarjetas) -->
+            <div id="stagesContainer" class="space-y-6">
+                <!-- Generado dinámicamente por JavaScript -->
+            </div>
+        </section>
+
+        <!-- Resumen Financiero Ejecutivo (Especial para Impresión / Vista Final) -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-4 flex items-center space-x-2">
+                <i class="fa-solid fa-file-lines text-brand-600"></i>
+                <span>Resumen Financiero Ejecutivo del Presupuesto</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                        <span class="text-slate-600 dark:text-slate-400">Costo Directo Total:</span>
+                        <span id="summaryDirect" class="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                        <span id="lblIndirectText" class="text-slate-600 dark:text-slate-400">Costos Indirectos (15%):</span>
+                        <span id="summaryIndirect" class="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                        <span id="lblImprevistosText" class="text-slate-600 dark:text-slate-400">Imprevistos (5%):</span>
+                        <span id="summaryImprevistos" class="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                        <span id="lblUtilidadText" class="text-slate-600 dark:text-slate-400">Margen de Utilidad (20%):</span>
+                        <span id="summaryUtilidad" class="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                        <span id="lblIvaText" class="text-slate-600 dark:text-slate-400">Impuestos / IVA (16%):</span>
+                        <span id="summaryIva" class="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between py-3 text-base font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-4 rounded-xl">
+                        <span>GRAN TOTAL PRESUPUESTO:</span>
+                        <span id="summaryGrandTotal">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-700/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-600 space-y-4">
+                    <h3 class="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i>
+                        <span>Notas y Validez de la Estimación</span>
+                    </h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Este presupuesto es una estimación preliminar generada con base en los metrados y costos unitarios ingresados. Los precios están sujetos a cambios según la cotización final de proveedores, ubicación geográfica de la obra y fluctuaciones de materiales en el mercado.
+                    </p>
+                    <div class="pt-2 border-t border-slate-200 dark:border-slate-600 flex justify-between text-xs text-slate-500">
+                        <span>Fecha de emisión: <strong id="lblFechaEmision">--/--/----</strong></span>
+                        <span>Versión: <strong>1.0 Pro</strong></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Agregar / Editar Partida -->
+    <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mx-4">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 id="itemModalTitle" class="font-bold text-slate-900 dark:text-white text-base">Agregar Partida / Concepto</h3>
+                <button onclick="app.cerrarModalPartida()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="itemForm" onsubmit="app.guardarPartida(event)" class="p-6 space-y-4">
+                <input type="hidden" id="modalStageId">
+                <input type="hidden" id="modalItemIndex" value="-1">
+                
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Concepto o Descripción del Trabajo *</label>
+                    <input type="text" id="itemName" required placeholder="Ej. Excavación a mano en zanja de 0 a 2m" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Unidad de Medida *</label>
+                        <select id="itemUnit" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="m²">m² (Metro cuadrado)</option>
+                            <option value="m³">m³ (Metro cúbico)</option>
+                            <option value="ml">ml (Metro lineal)</option>
+                            <option value="pza">pza (Pieza)</option>
+                            <option value="kg">kg (Kilogramo)</option>
+                            <option value="ton">ton (Tonelada)</option>
+                            <option value="lote">lote (Lote / Global)</option>
+                            <option value="jornal">jornal (Día / Hombre)</option>
+                            <option value="gl">gl (Galón / Litro)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Cantidad (Metrado) *</label>
+                        <input type="number" id="itemQty" step="0.01" min="0.01" required value="1" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Costo Unitario *</label>
+                    <div class="relative">
+                        <span id="currencySymbolPrefix" class="absolute left-3.5 top-2 text-slate-400 font-medium">$</span>
+                        <input type="number" id="itemPrice" step="0.01" min="0" required value="0.00" class="w-full pl-8 pr-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="app.cerrarModalPartida()" class="px-4 py-2 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition">Guardar Partida</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Nueva Etapa -->
+    <div id="stageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mx-4">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Agregar Nueva Etapa de Obra</h3>
+                <button onclick="app.cerrarModalEtapa()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form onsubmit="app.guardarEtapa(event)" class="p-6 space-y-4">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Nombre de la Etapa *</label>
+                    <input type="text" id="newStageName" required placeholder="Ej. Domótica y Automatización" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Icono (FontAwesome)</label>
+                    <input type="text" id="newStageIcon" value="fa-solid fa-hammer" placeholder="fa-solid fa-helmet-safety" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <p class="text-[11px] text-slate-400">Ejemplos: fa-solid fa-bolt, fa-solid fa-faucet, fa-solid fa-paint-roller</p>
+                </div>
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="app.cerrarModalEtapa()" class="px-4 py-2 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition">Crear Etapa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        class ConstructoApp {
+            constructor() {
+                this.state = {
+                    meta: {
+                        name: "Residencia Unifamiliar Moderna",
+                        client: "Ing. Roberto Mendoza",
+                        area: 180,
+                        currency: "$"
+                    },
+                    config: {
+                        indirectos: 15,
+                        imprevistos: 5,
+                        utilidad: 20,
+                        iva: 16
+                    },
+                    stages: [
+                        {
+                            id: "etapa_1",
+                            name: "1. Trabajos Preliminares y Cimentación",
+                            icon: "fa-solid fa-layer-group",
+                            items: [
+                                { name: "Limpieza, trazo y nivelación de terreno", unit: "m²", qty: 180, price: 35.00 },
+                                { name: "Excavación de zapatas y contratrabes a mano", unit: "m³", qty: 45, price: 280.00 },
+                                { name: "Plantilla de concreto pobre f'c=100 kg/cm²", unit: "m²", qty: 32, price: 160.00 },
+                                { name: "Zapatas de concreto armado f'c=250 kg/cm²", unit: "m³", qty: 18, price: 3400.00 }
+                            ]
+                        },
+                        {
+                            id: "etapa_2",
+                            name: "2. Estructura y Obra Negra",
+                            icon: "fa-solid fa-building",
+                            items: [
+                                { name: "Columnas y castillos de concreto f'c=250 kg/cm²", unit: "m³", qty: 12, price: 3800.00 },
+                                { name: "Muros de tabique rojo recocido 14x14x28 cm", unit: "m²", qty: 240, price: 420.00 },
+                                { name: "Losa de entrepiso vigueta y bovedilla", unit: "m²", qty: 90, price: 680.00 },
+                                { name: "Cadena de cerramiento y trabes", unit: "m³", qty: 8, price: 3950.00 }
+                            ]
+                        },
+                        {
+                            id: "etapa_3",
+                            name: "3. Instalaciones Hidráulica y Sanitaria",
+                            icon: "fa-solid fa-faucet-drip",
+                            items: [
+                                { name: "Red de agua fría y caliente con tuboplus", unit: "lote", qty: 1, price: 18500.00 },
+                                { name: "Bajadas de aguas negras y pluviales (PVC)", unit: "ml", qty: 45, price: 240.00 },
+                                { name: "Registro sanitario y tubería de albañal", unit: "pza", qty: 6, price: 1200.00 }
+                            ]
+                        },
+                        {
+                            id: "etapa_4",
+                            name: "4. Instalación Eléctrica",
+                            icon: "fa-solid fa-bolt",
+                            items: [
+                                { name: "Salidas para centros de luz y contactos", unit: "pza", qty: 54, price: 350.00 },
+                                { name: "Cableado principal y centro de carga 12 circuitos", unit: "lote", qty: 1, price: 14500.00 },
+                                { name: "Aterrizaje a tierra y varilla copperweld", unit: "pza", qty: 2, price: 950.00 }
+                            ]
+                        },
+                        {
+                            id: "etapa_5",
+                            name: "5. Acabados y Recubrimientos",
+                            icon: "fa-solid fa-paint-roller",
+                            items: [
+                                { name: "Aplanado de mezcla en muros interiores y exteriores", unit: "m²", qty: 480, price: 180.00 },
+                                { name: "Pisos de porcelanato formato 60x60 cm", unit: "m²", qty: 160, price: 550.00 },
+                                { name: "Impermeabilización de azotea a 3 capas", unit: "m²", qty: 95, price: 220.00 }
+                            ]
+                        },
+                        {
+                            id: "etapa_6",
+                            name: "6. Carpintería y Cancelería",
+                            icon: "fa-solid fa-door-open",
+                            items: [
+                                { name: "Puertas de madera tambor de encino", unit: "pza", qty: 8, price: 3800.00 },
+                                { name: "Ventanas de aluminio línea española con vidrio templado", unit: "m²", qty: 35, price: 2200.00 },
+                                { name: "Cocina integral básica con barra de granito", unit: "lote", qty: 1, price: 45000.00 }
+                            ]
+                        }
+                    ]
+                };
+
+                this.loadLocalStorage();
+                this.init();
+            }
+
+            loadLocalStorage() {
+                const saved = localStorage.getItem('constructo_budget_data');
+                if (saved) {
+                    try {
+                        this.state = JSON.parse(saved);
+                    } catch (e) {
+                        console.error("Error al cargar localStorage", e);
+                    }
+                }
+            }
+
+            saveLocalStorage() {
+                localStorage.setItem('constructo_budget_data', JSON.stringify(this.state));
+            }
+
+            init() {
+                // Rellenar campos de metadatos
+                document.getElementById('projName').value = this.state.meta.name;
+                document.getElementById('projClient').value = this.state.meta.client;
+                document.getElementById('projArea').value = this.state.meta.area;
+                document.getElementById('projCurrency').value = this.state.meta.currency;
+
+                // Rellenar campos de configuración
+                document.getElementById('cfgIndirectos').value = this.state.config.indirectos;
+                document.getElementById('cfgImprevistos').value = this.state.config.imprevistos;
+                document.getElementById('cfgUtilidad').value = this.state.config.utilidad;
+                document.getElementById('cfgIva').value = this.state.config.iva;
+
+                // Fecha actual
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById('lblFechaEmision').innerText = new Date().toLocaleDateString('es-ES', options);
+
+                this.render();
+            }
+
+            formatMoney(amount) {
+                const curr = this.state.meta.currency || '$';
+                return `${curr} ${Number(amount).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+
+            updateMeta() {
+                this.state.meta.name = document.getElementById('projName').value;
+                this.state.meta.client = document.getElementById('projClient').value;
+                this.state.meta.area = parseFloat(document.getElementById('projArea').value) || 1;
+                this.state.meta.currency = document.getElementById('projCurrency').value;
+                document.getElementById('currencySymbolPrefix').innerText = this.state.meta.currency;
+                this.saveLocalStorage();
+                this.renderCalculations();
+            }
+
+            updateConfig() {
+                this.state.config.indirectos = parseFloat(document.getElementById('cfgIndirectos').value) || 0;
+                this.state.config.imprevistos = parseFloat(document.getElementById('cfgImprevistos').value) || 0;
+                this.state.config.utilidad = parseFloat(document.getElementById('cfgUtilidad').value) || 0;
+                this.state.config.iva = parseFloat(document.getElementById('cfgIva').value) || 0;
+                this.saveLocalStorage();
+                this.renderCalculations();
+            }
+
+            calculateTotals() {
+                let directTotal = 0;
+                const stageTotals = this.state.stages.map(stage => {
+                    const stageTotal = stage.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+                    directTotal += stageTotal;
+                    return { id: stage.id, name: stage.name, total: stageTotal };
+                });
+
+                const area = this.state.meta.area > 0 ? this.state.meta.area : 1;
+                const costPerM2 = directTotal / area;
+
+                const indirectosAmt = directTotal * (this.state.config.indirectos / 100);
+                const imprevistosAmt = directTotal * (this.state.config.imprevistos / 100);
+                const utilidadAmt = (directTotal + indirectosAmt) * (this.state.config.utilidad / 100);
+                
+                const subtotalConUtilidad = directTotal + indirectosAmt + imprevistosAmt + utilidadAmt;
+                const ivaAmt = subtotalConUtilidad * (this.state.config.iva / 100);
+                const grandTotal = subtotalConUtilidad + ivaAmt;
+                const extrasTotal = indirectosAmt + imprevistosAmt + utilidadAmt + ivaAmt;
+
+                return {
+                    directTotal,
+                    costPerM2,
+                    stageTotals,
+                    indirectosAmt,
+                    imprevistosAmt,
+                    utilidadAmt,
+                    ivaAmt,
+                    grandTotal,
+                    extrasTotal
+                };
+            }
+
+            render() {
+                this.renderStages();
+                this.renderCalculations();
+            }
+
+            renderStages() {
+                const container = document.getElementById('stagesContainer');
+                container.innerHTML = '';
+
+                const totals = this.calculateTotals();
+
+                this.state.stages.forEach((stage, sIdx) => {
+                    const stageData = totals.stageTotals.find(st => st.id === stage.id);
+                    const stageTotal = stageData ? stageData.total : 0;
+                    const percentage = totals.directTotal > 0 ? ((stageTotal / totals.directTotal) * 100).toFixed(1) : 0;
+
+                    let itemsHtml = '';
+                    if (stage.items.length === 0) {
+                        itemsHtml = `<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-slate-400 italic">No hay partidas registradas en esta etapa. Haz clic en "Agregar Partida".</td></tr>`;
+                    } else {
+                        stage.items.forEach((item, iIdx) => {
+                            const subtotal = item.qty * item.price;
+                            itemsHtml += `
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+                                    <td class="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200">${item.name}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 text-center">${item.unit}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">${item.qty.toLocaleString()}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">${this.formatMoney(item.price)}</td>
+                                    <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white text-right">${this.formatMoney(subtotal)}</td>
+                                    <td class="px-4 py-3 text-right space-x-1 no-print">
+                                        <button onclick="app.abrirModalPartida('${stage.id}', ${iIdx})" class="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition" title="Editar">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button onclick="app.eliminarPartida('${stage.id}', ${iIdx})" class="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition" title="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    const stageCard = document.createElement('div');
+                    stageCard.className = "bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden";
+                    stageCard.innerHTML = `
+                        <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl">
+                                    <i class="${stage.icon || 'fa-solid fa-folder'} text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900 dark:text-white text-base">${stage.name}</h3>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Incidencia: ${percentage}% del costo directo</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end space-x-4">
+                                <div class="text-right">
+                                    <span class="text-xs text-slate-400 block uppercase font-semibold">Subtotal Etapa</span>
+                                    <span class="font-bold text-brand-600 dark:text-brand-400 text-base">${this.formatMoney(stageTotal)}</span>
+                                </div>
+                                <div class="flex items-center space-x-1.5 no-print">
+                                    <button onclick="app.abrirModalPartida('${stage.id}')" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition inline-flex items-center space-x-1">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Partida</span>
+                                    </button>
+                                    <button onclick="app.eliminarEtapa('${stage.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl transition" title="Eliminar Etapa">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-900/30">
+                                        <th class="px-4 py-2.5 font-semibold">Concepto / Partida</th>
+                                        <th class="px-4 py-2.5 font-semibold text-center w-24">Unidad</th>
+                                        <th class="px-4 py-2.5 font-semibold text-right w-28">Cantidad</th>
+                                        <th class="px-4 py-2.5 font-semibold text-right w-36">Costo Unit.</th>
+                                        <th class="px-4 py-2.5 font-semibold text-right w-36">Subtotal</th>
+                                        <th class="px-4 py-2.5 font-semibold text-right w-20 no-print">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${itemsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.appendChild(stageCard);
+                });
+            }
+
+            renderCalculations() {
+                const totals = this.calculateTotals();
+
+                // Actualizar métricas principales superior
+                document.getElementById('lblDirectCost').innerText = this.formatMoney(totals.directTotal);
+                document.getElementById('lblCostPerM2').innerText = this.formatMoney(totals.costPerM2);
+                document.getElementById('lblExtrasTotal').innerText = this.formatMoney(totals.extrasTotal);
+                document.getElementById('lblGrandTotal').innerText = this.formatMoney(totals.grandTotal);
+
+                // Actualizar textos de configuración en resumen
+                document.getElementById('lblIndirectText').innerText = `Costos Indirectos (${this.state.config.indirectos}%):`;
+                document.getElementById('lblImprevistosText').innerText = `Imprevistos (${this.state.config.imprevistos}%):`;
+                document.getElementById('lblUtilidadText').innerText = `Margen de Utilidad (${this.state.config.utilidad}%):`;
+                document.getElementById('lblIvaText').innerText = `Impuestos / IVA (${this.state.config.iva}%):`;
+
+                // Actualizar tabla resumen financiero
+                document.getElementById('summaryDirect').innerText = this.formatMoney(totals.directTotal);
+                document.getElementById('summaryIndirect').innerText = this.formatMoney(totals.indirectosAmt);
+                document.getElementById('summaryImprevistos').innerText = this.formatMoney(totals.imprevistosAmt);
+                document.getElementById('summaryUtilidad').innerText = this.formatMoney(totals.utilidadAmt);
+                document.getElementById('summaryIva').innerText = this.formatMoney(totals.ivaAmt);
+                document.getElementById('summaryGrandTotal').innerText = this.formatMoney(totals.grandTotal);
+
+                // Generar gráfico visual de desglose por etapas
+                const breakdownContainer = document.getElementById('visualBreakdown');
+                breakdownContainer.innerHTML = '';
+
+                const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-indigo-500', 'bg-amber-500', 'bg-violet-500', 'bg-rose-500', 'bg-teal-500', 'bg-cyan-500'];
+
+                totals.stageTotals.forEach((st, idx) => {
+                    const percentage = totals.directTotal > 0 ? ((st.total / totals.directTotal) * 100).toFixed(1) : 0;
+                    const colorClass = colors[idx % colors.length];
+
+                    const barHtml = `
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-700 dark:text-slate-300">${st.name}</span>
+                                <span class="text-slate-900 dark:text-white">${this.formatMoney(st.total)} (${percentage}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                <div class="${colorClass} h-2.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    breakdownContainer.innerHTML += barHtml;
+                });
+            }
+
+            abrirModalPartida(stageId, itemIndex = -1) {
+                document.getElementById('modalStageId').value = stageId;
+                document.getElementById('modalItemIndex').value = itemIndex;
+                
+                const titleEl = document.getElementById('itemModalTitle');
+                if (itemIndex === -1) {
+                    titleEl.innerText = "Agregar Nueva Partida / Concepto";
+                    document.getElementById('itemName').value = '';
+                    document.getElementById('itemUnit').value = 'm²';
+                    document.getElementById('itemQty').value = 1;
+                    document.getElementById('itemPrice').value = 0.00;
+                } else {
+                    titleEl.innerText = "Editar Partida / Concepto";
+                    const stage = this.state.stages.find(s => s.id === stageId);
+                    const item = stage.items[itemIndex];
+                    document.getElementById('itemName').value = item.name;
+                    document.getElementById('itemUnit').value = item.unit;
+                    document.getElementById('itemQty').value = item.qty;
+                    document.getElementById('itemPrice').value = item.price;
+                }
+
+                document.getElementById('itemModal').classList.remove('hidden');
+            }
+
+            cerrarModalPartida() {
+                document.getElementById('itemModal').classList.add('hidden');
+            }
+
+            guardarPartida(event) {
+                event.preventDefault();
+                const stageId = document.getElementById('modalStageId').value;
+                const itemIndex = parseInt(document.getElementById('modalItemIndex').value);
+
+                const newItem = {
+                    name: document.getElementById('itemName').value,
+                    unit: document.getElementById('itemUnit').value,
+                    qty: parseFloat(document.getElementById('itemQty').value) || 0,
+                    price: parseFloat(document.getElementById('itemPrice').value) || 0
+                };
+
+                const stage = this.state.stages.find(s => s.id === stageId);
+                if (stage) {
+                    if (itemIndex === -1) {
+                        stage.items.push(newItem);
+                    } else {
+                        stage.items[itemIndex] = newItem;
+                    }
+                    this.saveLocalStorage();
+                    this.render();
+                    this.cerrarModalPartida();
+                }
+            }
+
+            eliminarPartida(stageId, itemIndex) {
+                if (confirm('¿Estás seguro de eliminar este concepto del presupuesto?')) {
+                    const stage = this.state.stages.find(s => s.id === stageId);
+                    if (stage) {
+                        stage.items.splice(itemIndex, 1);
+                        this.saveLocalStorage();
+                        this.render();
+                    }
+                }
+            }
+
+            abrirModalEtapa() {
+                document.getElementById('newStageName').value = '';
+                document.getElementById('stageModal').classList.remove('hidden');
+            }
+
+            cerrarModalEtapa() {
+                document.getElementById('stageModal').classList.add('hidden');
+            }
+
+            guardarEtapa(event) {
+                event.preventDefault();
+                const name = document.getElementById('newStageName').value;
+                const icon = document.getElementById('newStageIcon').value || 'fa-solid fa-hammer';
+                const newId = 'etapa_' + Date.now();
+
+                this.state.stages.push({
+                    id: newId,
+                    name: name,
+                    icon: icon,
+                    items: []
+                });
+
+                this.saveLocalStorage();
+                this.render();
+                this.cerrarModalEtapa();
+            }
+
+            eliminarEtapa(stageId) {
+                if (confirm('¿Estás seguro de eliminar toda esta etapa junto con sus partidas?')) {
+                    this.state.stages = this.state.stages.filter(s => s.id !== stageId);
+                    this.saveLocalStorage();
+                    this.render();
+                }
+            }
+
+            nuevoPresupuesto() {
+                if (confirm('¿Desea crear un nuevo presupuesto en blanco? Se perderán los datos no guardados.')) {
+                    localStorage.removeItem('constructo_budget_data');
+                    location.reload();
+                }
+            }
+
+            exportarJSON() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `presupuesto_${this.state.meta.name.toLowerCase().replace(/\s+/g, '_')}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            }
+
+            importarJSON(event) {
+                const fileReader = new FileReader();
+                if (event.target.files[0]) {
+                    fileReader.readAsText(event.target.files[0], "UTF-8");
+                    fileReader.onload = (e) => {
+                        try {
+                            const importedState = JSON.parse(e.target.result);
+                            if (importedState && importedState.stages && importedState.meta) {
+                                this.state = importedState;
+                                this.saveLocalStorage();
+                                this.init();
+                                alert('Presupuesto importado exitosamente.');
+                            } else {
+                                alert('El archivo seleccionado no tiene un formato válido.');
+                            }
+                        } catch (err) {
+                            alert('Error al procesar el archivo JSON.');
+                        }
+                    };
+                }
+            }
+
+            toggleDarkMode() {
+                const htmlEl = document.documentElement;
+                const themeIcon = document.getElementById('themeIcon');
+                if (htmlEl.classList.contains('dark')) {
+                    htmlEl.classList.remove('dark');
+                    localStorage.setItem('constructo_theme', 'light');
+                    themeIcon.className = 'fa-solid fa-moon';
+                } else {
+                    htmlEl.classList.add('dark');
+                    localStorage.setItem('constructo_theme', 'dark');
+                    themeIcon.className = 'fa-solid fa-sun';
+                }
+            }
+        }
+
+        // Inicializar aplicación al cargar la página
+        let app;
+        window.onload = () => {
+            // Cargar tema guardado
+            const savedTheme = localStorage.getItem('constructo_theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-sun';
+            }
+            app = new ConstructoApp();
+        };
+
+        // Redefinir alert y confirm de manera amigable para evitar restricciones de iFrame
+        window.alert = function(msg) {
+            console.log("Alerta: ", msg);
+            // Creamos un toast modal nativo sencillo
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl text-sm flex items-center space-x-3 transition transform duration-300";
+            toast.innerHTML = `<i class="fa-solid fa-circle-info text-brand-400 text-lg"></i><span>${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
+
+        window.confirm = function(msg) {
+            return window.confirm(msg); // Usamos confirm nativo si está disponible, sino fallback true
+        };
+    </script>
+</body>
+</html>
